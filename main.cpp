@@ -24,6 +24,22 @@ void loadFont(std::vector<Byte> &ram) {
     }
 }
 
+// load program into memory at 0x200
+void loadProgram(std::vector<Byte> &ram) {
+    std::ifstream programFile {"test.ch8"};
+    if(!programFile) {
+        std::cerr << "Program file could not be opened.\n";
+        // HANDLE ERROR
+        // return 1;
+    }
+
+    std::string strInput{};
+    int i = 0x200;
+    while (programFile >> strInput) {
+        ram[i++] std::stoi(strInput, 0, 16);
+    }
+}
+
 bool initSDL(SDL_Window*& window, SDL_Surface*& screenSurface, 
                 int width, int height) {
     // Initialization flag
@@ -78,6 +94,8 @@ int main(int argc, char* args[]) {
     const int screen_height = 32;
 
     loadFont(ram);
+    loadProgram(ram);
+    pc = 0x200;
 
     // SDL stuff
     SDL_Window* window = NULL;
