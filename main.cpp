@@ -2,10 +2,13 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <bitset>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
-using Byte = unsigned char;
+using Nibble = std::bitset<4>;
+using Byte = std::bitset<8>;
+using TwoByte = std::bitset<16>;
 
 // store font data in memory (050-09F)
 void loadFont(std::vector<Byte> &ram) {
@@ -78,17 +81,17 @@ int main(int argc, char* args[]) {
     // 4 kB RAM (program should be loaded at 512 or 0x200)
     std::vector<Byte> ram (4096);
     // PC (16-bit, 12-bit actual)
-    char16_t pc;
+    TwoByte pc;
     // 16-bit index register (I)
-    char16_t i_reg;
+    TwoByte i_reg;
     // 16-bit stack
-    std::vector<char16_t> stack (16); // 16 levels of nesting
+    std::vector<TwoByte> stack (16); // 16 levels of nesting
     // 8-bit delay timer
     Byte delay_timer;
     // 8-bit sound timer
     Byte sound_timer;
     // 16 8-bit variable registers (V0 - VF)
-    std::vector<char16_t> registers (16);
+    std::vector<TwoByte> registers (16);
     // screen dimensions
     const int screen_width = 64;
     const int screen_height = 32;
@@ -111,6 +114,7 @@ int main(int argc, char* args[]) {
         // Update the surface
         SDL_UpdateWindowSurface(window);
 
+        /*
         // Main loop flag
         bool quit = false;
 
@@ -126,6 +130,45 @@ int main(int argc, char* args[]) {
                     quit = true;
                 } // else if user presses a key
             }
+        }
+        */
+
+        while (pc < ram.size()) { // test condition
+            TwoByte instruction = ram[pc] << 8 | ram[++pc]; // test 
+            ++pc;
+
+            #define FIRST_NIBBLE instruction    & 0xF000
+            #define SECOND_NIBBLE instruction   & 0x0F00
+            #define THIRD_NIBBLE instruction    & 0x00F0
+            #define FOURTH_NIBBLE instruction   & 0x000F
+
+            switch(FIRST_NIBBLE) {
+                case 0:
+                    // clear screen
+                    break;
+                case 0x1:
+                    // jump
+                    break;
+                case 0x6:
+                    // set register VX
+                    break;
+                case 0x7:
+                    // add value to register VX
+                    break;
+                case 0xA:
+                    // set index register I
+                    break;
+                case 0xD:
+                    // display / draw
+                    break;
+                default:
+                    // ERROR
+            }
+
+            #undef FIRST_NIBBLE
+            #undef SECOND_NIBBLE
+            #undef THIRD_NIBBLE
+            #undef FOURTH_NIBBLE
         }
     }
 
