@@ -6,8 +6,8 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
-using Nibble = std::bitset<4>;
 using Byte = unsigned char;
+using Nibble = Byte;
 using TwoByte = char16_t;
 
 // store font data in memory (050-09F)
@@ -135,39 +135,59 @@ int main(int argc, char* args[]) {
             }
         }
         */
-        while (pc < 0x200 + programSize) { // test condition
-            TwoByte instruction = ram[pc] << 8 | ram[++pc]; // test 
-            ++pc;
-            std::cout << "PC : " << pc - 2 << '\n';
-            std::cout << "Instruction: " << std::hex<< instruction << '\n';
+        while (pc < 0x200 + programSize) {
+            //TwoByte instruction = ram[pc] << 8 | ram[++pc];
+            //++pc;
+            //std::cout << "PC : " << pc - 2 << '\n';
+            //std::cout << "Instruction: " << std::hex<< instruction << '\n';
+            Nibble first_nibble = (ram[pc] & 0xF0) >> 4;
+            Nibble second_nibble = ram[pc++] & 0x0F;
+            Nibble third_nibble = (ram[pc] & 0xF0) >> 4;
+            Nibble fourth_nibble = ram[pc++] & 0x0F;
             /*
-            #define FIRST_NIBBLE instruction    & 0xF000
-            #define SECOND_NIBBLE instruction   & 0x0F00
-            #define THIRD_NIBBLE instruction    & 0x00F0
-            #define FOURTH_NIBBLE instruction   & 0x000F
-            
-            switch(FIRST_NIBBLE) {
+            std::cout << first_nibble << '\n';
+            std::cout << second_nibble << '\n';
+            std::cout << third_nibble << '\n';
+            std::cout << fourth_nibble << '\n';
+            */
+            switch(first_nibble) {
                 case 0:
-                    // clear screen
+                    if (second_nibble == 0 && 
+                        third_nibble == 0xE && 
+                        fourth_nibble == 0x0) { // clear screen
+                        std::cout << "clear\n";
+                    } else if (second_nibble == 0 && 
+                        third_nibble == 0xE && 
+                        fourth_nibble == 0xE) { // return
+                        //std::cout << "return\n";
+                    } else { // call machine code routine at NNN
+                        //std::cout << "call\n";
+                    }
                     break;
-                case 0x1:
-                    // jump
+                case 1: // jump
+                    std::cout << "jump\n";
                     break;
-                case 0x6:
-                    // set register VX
+                case 6: // set register VX
+                    std::cout << "set register VX\n";
                     break;
-                case 0x7:
-                    // add value to register VX
+                case 7: // add value to register VX
+                    std::cout << "add value to reg\n";
                     break;
-                case 0xA:
-                    // set index register I
+                case 0xA: // set index register I
+                    std::cout << "set i reg\n";
                     break;
-                case 0xD:
-                    // display / draw
+                case 0xD: // display / draw
+                    std::cout << "draw\n";
                     break;
-                default:
+                default: // undetermined
+                    std::cout << std::hex << 
+                        (int)first_nibble <<
+                        (int)second_nibble <<
+                        (int)third_nibble <<
+                        (int)fourth_nibble << "\n";
+                    break;
                     // ERROR
-            }*/
+            }
         }
     }
 
