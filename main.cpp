@@ -7,8 +7,8 @@
 #include <SDL3/SDL_main.h>
 
 using Nibble = std::bitset<4>;
-using Byte = std::bitset<8>;
-using TwoByte = std::bitset<16>;
+using Byte = unsigned char;
+using TwoByte = char16_t;
 
 // store font data in memory (050-09F)
 void loadFont(std::vector<Byte> &ram) {
@@ -28,18 +28,20 @@ void loadFont(std::vector<Byte> &ram) {
 }
 
 // load program into memory at 0x200
-void loadProgram(std::vector<Byte> &ram) {
-    std::ifstream programFile {"test.ch8"};
+void loadProgram(std::vector<Byte> &ram, int &programSize) {
+    std::ifstream programFile {"test.ch8", std::ios::binary};
     if(!programFile) {
         std::cerr << "Program file could not be opened.\n";
         // HANDLE ERROR
         // return 1;
     }
-
-    std::string strInput{};
-    int i = 0x200;
-    while (programFile >> strInput) {
-        ram[i++] std::stoi(strInput, 0, 16);
+    // determine file length
+    programFile.seekg(0, programFile.end);
+    programSize = programFile.tellg();
+    programFile.seekg(0, programFile.beg);
+    
+    for (int i = 0x200; i < programSize + 0x200; i++) {
+        programFile.read((char*) &ram[i], sizeof(Byte));
     }
 }
 
@@ -95,9 +97,10 @@ int main(int argc, char* args[]) {
     // screen dimensions
     const int screen_width = 64;
     const int screen_height = 32;
+    int programSize;
 
     loadFont(ram);
-    loadProgram(ram);
+    loadProgram(ram, programSize);
     pc = 0x200;
 
     // SDL stuff
@@ -132,16 +135,17 @@ int main(int argc, char* args[]) {
             }
         }
         */
-
-        while (pc < ram.size()) { // test condition
+        while (pc < 0x200 + programSize) { // test condition
             TwoByte instruction = ram[pc] << 8 | ram[++pc]; // test 
             ++pc;
-
+            std::cout << "PC : " << pc - 2 << '\n';
+            std::cout << "Instruction: " << std::hex<< instruction << '\n';
+            /*
             #define FIRST_NIBBLE instruction    & 0xF000
             #define SECOND_NIBBLE instruction   & 0x0F00
             #define THIRD_NIBBLE instruction    & 0x00F0
             #define FOURTH_NIBBLE instruction   & 0x000F
-
+            
             switch(FIRST_NIBBLE) {
                 case 0:
                     // clear screen
@@ -163,12 +167,7 @@ int main(int argc, char* args[]) {
                     break;
                 default:
                     // ERROR
-            }
-
-            #undef FIRST_NIBBLE
-            #undef SECOND_NIBBLE
-            #undef THIRD_NIBBLE
-            #undef FOURTH_NIBBLE
+            }*/
         }
     }
 
