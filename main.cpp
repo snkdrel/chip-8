@@ -63,7 +63,7 @@ bool initSDL(SDL_Window*& window, SDL_Surface*& screenSurface,
                 SDL_GetError());
         } else {
             // Get window surface
-            screenSurface = SDL_GetWindowSurface(window);
+            //screenSurface = SDL_GetWindowSurface(window);
         }
     }
     return success;
@@ -95,8 +95,8 @@ int main(int argc, char* args[]) {
     // 16 8-bit variable registers (V0 - VF)
     std::vector<TwoByte> registers (16);
     // screen dimensions
-    const int screen_width = 64;
-    const int screen_height = 32;
+    const int screen_width = 640;
+    const int screen_height = 320;
     int programSize;
 
     loadFont(ram);
@@ -111,13 +111,45 @@ int main(int argc, char* args[]) {
             screen_width, screen_height)) {
         SDL_Log("Failed to initialize!\n");
     } else {
-        // Fill the surface white
-        SDL_FillSurfaceRect(screenSurface, NULL, 
-            SDL_MapSurfaceRGB( screenSurface, 0xFF, 0xFF, 0xFF));
-        // Update the surface
-        SDL_UpdateWindowSurface(window);
 
+        // FOR TESTING
+        SDL_Renderer * renderer;
+        renderer = SDL_CreateRenderer(window, NULL);
+        if (renderer == NULL){
+            std::cout << SDL_GetError();
+        }
         /*
+        SDL_RenderClear(renderer);
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        SDL_RenderClear(renderer);
+        SDL_RenderPresent(renderer);
+        
+        SDL_RenderClear(renderer);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+        SDL_RenderPoint(renderer, 320, 160);
+        */
+        
+        SDL_FRect rect;
+        rect.x = 320;
+        rect.y = 160;
+        rect.w = 20;
+        rect.h = 10;
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+        SDL_RenderClear(renderer);
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        SDL_RenderRect(renderer, &rect);
+        SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255);
+        SDL_RenderFillRect(renderer, &rect);
+        SDL_RenderPresent(renderer);
+        
+
+
+        // Fill the surface white
+        //SDL_FillSurfaceRect(screenSurface, NULL, 
+        //    SDL_MapSurfaceRGB( screenSurface, 0x0, 0x0, 0x0));
+        // Update the surface
+        //SDL_UpdateWindowSurface(window);
+        
         // Main loop flag
         bool quit = false;
 
@@ -134,7 +166,9 @@ int main(int argc, char* args[]) {
                 } // else if user presses a key
             }
         }
-        */
+
+        SDL_DestroyRenderer(renderer);
+        /*
         while (pc < 0x200 + programSize) {
             //TwoByte instruction = ram[pc] << 8 | ram[++pc];
             //++pc;
@@ -144,12 +178,7 @@ int main(int argc, char* args[]) {
             Nibble second_nibble = ram[pc++] & 0x0F;
             Nibble third_nibble = (ram[pc] & 0xF0) >> 4;
             Nibble fourth_nibble = ram[pc++] & 0x0F;
-            /*
-            std::cout << first_nibble << '\n';
-            std::cout << second_nibble << '\n';
-            std::cout << third_nibble << '\n';
-            std::cout << fourth_nibble << '\n';
-            */
+            
             switch(first_nibble) {
                 case 0:
                     if (second_nibble == 0 && 
@@ -161,20 +190,24 @@ int main(int argc, char* args[]) {
                         fourth_nibble == 0xE) { // return
                         //std::cout << "return\n";
                     } else { // call machine code routine at NNN
-                        //std::cout << "call\n";
+                        std::cout << "call machine language routine\n";   
                     }
                     break;
-                case 1: // jump
-                    std::cout << "jump\n";
+                case 1: // jump (set pc to NNN)
+                    pc = (second_nibble << 8) 
+                        & (third_nibble << 4) & fourth_nibble;
                     break;
-                case 6: // set register VX
-                    std::cout << "set register VX\n";
+                case 6: // set register VX to NN
+                    registers[second_nibble] = 
+                        (third_nibble << 4) & fourth_nibble;
                     break;
-                case 7: // add value to register VX
-                    std::cout << "add value to reg\n";
+                case 7: // add value NN to register VX
+                    registers[second_nibble] += 
+                        (third_nibble << 4) & fourth_nibble;
                     break;
-                case 0xA: // set index register I
-                    std::cout << "set i reg\n";
+                case 0xA: // set index register I to NNN
+                    i_reg = (second_nibble << 8) 
+                            & (third_nibble << 4) & fourth_nibble;
                     break;
                 case 0xD: // display / draw
                     std::cout << "draw\n";
@@ -189,6 +222,7 @@ int main(int argc, char* args[]) {
                     // ERROR
             }
         }
+        */
     }
 
     // Free resources and close SDL
