@@ -45,7 +45,7 @@ void loadProgram(std::vector<Byte> &ram, int &programSize) {
     }
 }
 
-bool initSDL(SDL_Window*& window, SDL_Surface*& screenSurface, 
+bool initSDL(SDL_Window*& window, SDL_Renderer*& renderer, 
                 int width, int height) {
     // Initialization flag
     bool success = true;
@@ -62,14 +62,16 @@ bool initSDL(SDL_Window*& window, SDL_Surface*& screenSurface,
             SDL_Log("Window could not be created! SDL_Error: %\n", 
                 SDL_GetError());
         } else {
-            // Get window surface
-            //screenSurface = SDL_GetWindowSurface(window);
+            renderer = SDL_CreateRenderer(window, NULL);
         }
     }
     return success;
 }
 
-void closeSDL(SDL_Window*& window, SDL_Surface*& screenSurface) {
+void closeSDL(SDL_Window*& window, SDL_Renderer*& renderer) {
+    // Destroy renderer
+    SDL_DestroyRenderer(renderer);
+
     // Destroy window
     SDL_DestroyWindow(window);
     window = NULL;
@@ -97,6 +99,16 @@ int main(int argc, char* args[]) {
     // screen dimensions
     const int screen_width = 640;
     const int screen_height = 320;
+    // pixels' on / off states
+    std::vector< std::vector<bool> > pixels (32, std::vector<bool>(64, false));
+    // struct for drawing rects as pixels 
+    SDL_FRect rect = {
+        0, // x coordinate
+        0, // y coordinate
+        10, // width
+        10, // height
+    };
+    // size of loaded program
     int programSize;
 
     loadFont(ram);
@@ -105,51 +117,13 @@ int main(int argc, char* args[]) {
 
     // SDL stuff
     SDL_Window* window = NULL;
-    SDL_Surface* screenSurface = NULL;
+    SDL_Renderer* renderer;
 
-    if (!initSDL(window, screenSurface, 
+    if (!initSDL(window, renderer, 
             screen_width, screen_height)) {
         SDL_Log("Failed to initialize!\n");
-    } else {
-
-        // FOR TESTING
-        SDL_Renderer * renderer;
-        renderer = SDL_CreateRenderer(window, NULL);
-        if (renderer == NULL){
-            std::cout << SDL_GetError();
-        }
+    } else {        
         /*
-        SDL_RenderClear(renderer);
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-        SDL_RenderClear(renderer);
-        SDL_RenderPresent(renderer);
-        
-        SDL_RenderClear(renderer);
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-        SDL_RenderPoint(renderer, 320, 160);
-        */
-        
-        SDL_FRect rect;
-        rect.x = 320;
-        rect.y = 160;
-        rect.w = 20;
-        rect.h = 10;
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-        SDL_RenderClear(renderer);
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-        SDL_RenderRect(renderer, &rect);
-        SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255);
-        SDL_RenderFillRect(renderer, &rect);
-        SDL_RenderPresent(renderer);
-        
-
-
-        // Fill the surface white
-        //SDL_FillSurfaceRect(screenSurface, NULL, 
-        //    SDL_MapSurfaceRGB( screenSurface, 0x0, 0x0, 0x0));
-        // Update the surface
-        //SDL_UpdateWindowSurface(window);
-        
         // Main loop flag
         bool quit = false;
 
@@ -166,14 +140,11 @@ int main(int argc, char* args[]) {
                 } // else if user presses a key
             }
         }
-
-        SDL_DestroyRenderer(renderer);
-        /*
+        */
+        
         while (pc < 0x200 + programSize) {
-            //TwoByte instruction = ram[pc] << 8 | ram[++pc];
-            //++pc;
-            //std::cout << "PC : " << pc - 2 << '\n';
-            //std::cout << "Instruction: " << std::hex<< instruction << '\n';
+            
+            // decode instruction
             Nibble first_nibble = (ram[pc] & 0xF0) >> 4;
             Nibble second_nibble = ram[pc++] & 0x0F;
             Nibble third_nibble = (ram[pc] & 0xF0) >> 4;
@@ -209,8 +180,55 @@ int main(int argc, char* args[]) {
                     i_reg = (second_nibble << 8) 
                             & (third_nibble << 4) & fourth_nibble;
                     break;
-                case 0xD: // display / draw
-                    std::cout << "draw\n";
+                case 0xD: // display (DXYN)
+                    {
+                        // get x and y coordinates
+                        int x = registers[second_nibble] & 63; // mod 64
+                        int y = registers[third_nibble] & 31;
+
+                        // set flag register to 0
+                        registers[0xF] = 0;
+
+                        // iterate over height N
+                        for (int i = 0; i < fourth_nibble; i++) {
+                            // if screen bottom is reached
+                            if (y + i >= 32) {
+                                break;
+                            }
+                            // iterate over sprite row
+                            Byte spriteRow = ram[i_reg + i];
+                            for (int j = 7; j >= 0; j--) {
+                                // if screen edge is reached
+                                if (x + 7 - j >= 64) {
+                                    continue;
+                                }
+                                bool currentBit = spriteRow & (1 << j);
+                                // coordinates for pixels vector
+                                int xP = x + 7 - j;
+                                int yP = y + i;
+                                
+                                if (currentBit) {
+                                    if (pixels[xP][yP]) {
+                                        registers[0xF] = 1;
+                                        // turn off pixel
+                                        pixels[xP][yP] = false;
+                                        SDL_SetRenderDrawColor(
+                                            renderer, 0, 0, 0, 0);
+                                    } else {
+                                        // turn on pixel
+                                        pixels[xP][yP] = true;
+                                        SDL_SetRenderDrawColor(
+                                            renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+                                    }
+                                    // update backbuffer
+                                    rect.x = xP * 10;
+                                    rect.y = yP * 10;
+                                    SDL_RenderFillRect(renderer, &rect);
+                                }
+                                SDL_RenderPresent(renderer);
+                            }
+                        }
+                    }
                     break;
                 default: // undetermined
                     std::cout << std::hex << 
@@ -222,11 +240,10 @@ int main(int argc, char* args[]) {
                     // ERROR
             }
         }
-        */
     }
 
     // Free resources and close SDL
-    closeSDL(window, screenSurface);
+    closeSDL(window, renderer);
 
     return 0;
 }
