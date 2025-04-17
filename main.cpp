@@ -153,15 +153,20 @@ int main(int argc, char* args[]) {
             switch(first_nibble) {
                 case 0:
                     if (second_nibble == 0 && 
-                        third_nibble == 0xE && 
-                        fourth_nibble == 0x0) { // clear screen
-                        std::cout << "clear\n";
+                            third_nibble == 0xE && 
+                            fourth_nibble == 0x0) { // clear screen
+                        std::fill(pixels.begin(), pixels.end(), 
+                            std::vector<bool>(64, false));
+                        SDL_SetRenderDrawColor(
+                            renderer, 0, 0, 0, 0);
+                        SDL_RenderClear(renderer);
+                        SDL_RenderPresent(renderer);
                     } else if (second_nibble == 0 && 
                         third_nibble == 0xE && 
                         fourth_nibble == 0xE) { // return
                         //std::cout << "return\n";
                     } else { // call machine code routine at NNN
-                        std::cout << "call machine language routine\n";   
+                        //std::cout << "call machine language routine\n";   
                     }
                     break;
                 case 1: // jump (set pc to NNN)
