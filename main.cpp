@@ -71,6 +71,7 @@ bool initSDL(SDL_Window*& window, SDL_Renderer*& renderer,
 void closeSDL(SDL_Window*& window, SDL_Renderer*& renderer) {
     // Destroy renderer
     SDL_DestroyRenderer(renderer);
+    renderer = NULL;
 
     // Destroy window
     SDL_DestroyWindow(window);
@@ -123,13 +124,12 @@ int main(int argc, char* args[]) {
             screen_width, screen_height)) {
         SDL_Log("Failed to initialize!\n");
     } else {        
-        /*
         // Main loop flag
         bool quit = false;
 
         // Event handler
         SDL_Event e;
-        
+        /*
         // While application is running
         while (!quit) {
             // Handle events on queue
@@ -139,22 +139,31 @@ int main(int argc, char* args[]) {
                     quit = true;
                 } // else if user presses a key
             }
-        }
-        */
-        
-        while (pc < 0x200 + programSize) {
-            
+        }*/
+        int aux = 0;
+        while (SDL_PollEvent(&e) != 0 || !quit) {
+            if (e.type == SDL_EVENT_QUIT) {
+                quit = true;
+            }
+
             // decode instruction
             Nibble first_nibble = (ram[pc] & 0xF0) >> 4;
             Nibble second_nibble = ram[pc++] & 0x0F;
             Nibble third_nibble = (ram[pc] & 0xF0) >> 4;
             Nibble fourth_nibble = ram[pc++] & 0x0F;
-            
+            std::cout << "pc: " << pc << "\n";
+            std::cout << std::hex << 
+                        (int)first_nibble <<
+                        (int)second_nibble <<
+                        (int)third_nibble <<
+                        (int)fourth_nibble << "\n";
+
             switch(first_nibble) {
                 case 0:
                     if (second_nibble == 0 && 
                             third_nibble == 0xE && 
                             fourth_nibble == 0x0) { // clear screen
+                        std::cout << "clear\n";
                         std::fill(pixels.begin(), pixels.end(), 
                             std::vector<bool>(64, false));
                         SDL_SetRenderDrawColor(
@@ -164,29 +173,41 @@ int main(int argc, char* args[]) {
                     } else if (second_nibble == 0 && 
                         third_nibble == 0xE && 
                         fourth_nibble == 0xE) { // return
-                        //std::cout << "return\n";
+                        std::cout << "return???\n";
                     } else { // call machine code routine at NNN
-                        //std::cout << "call machine language routine\n";   
+                        std::cout << "call machine language routine???\n";   
                     }
                     break;
                 case 1: // jump (set pc to NNN)
-                    pc = (second_nibble << 8) 
-                        & (third_nibble << 4) & fourth_nibble;
+                    pc = (second_nibble << 8) | (third_nibble << 4) 
+                        | fourth_nibble;
+                    std::cout << "jump to " << pc << ": ";
+                    std::cout << std::hex << int(ram[pc]) << "\n";
                     break;
                 case 6: // set register VX to NN
+                    std::cout << "set register vx to nn\n";
                     registers[second_nibble] = 
                         (third_nibble << 4) & fourth_nibble;
                     break;
                 case 7: // add value NN to register VX
+                    std::cout << "add value NN to register vx\n";
                     registers[second_nibble] += 
                         (third_nibble << 4) & fourth_nibble;
                     break;
                 case 0xA: // set index register I to NNN
+                    std::cout << "set I to nn\n";
                     i_reg = (second_nibble << 8) 
                             & (third_nibble << 4) & fourth_nibble;
                     break;
-                case 0xD: // display (DXYN)
-                    {
+                case 0xD: // display (DXYN)*/
+                    SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+                    rect.x = aux*10;
+                    rect.y = aux*10;
+                    aux++;
+                    SDL_RenderFillRect(renderer, &rect);
+                    SDL_RenderPresent(renderer);
+                    /*{
+                        std::cout << "----display\n";
                         // get x and y coordinates
                         int x = registers[second_nibble] & 63; // mod 64
                         int y = registers[third_nibble] & 31;
@@ -233,14 +254,16 @@ int main(int argc, char* args[]) {
                                 SDL_RenderPresent(renderer);
                             }
                         }
-                    }
+                    }*/
                     break;
                 default: // undetermined
+                    /*
                     std::cout << std::hex << 
                         (int)first_nibble <<
                         (int)second_nibble <<
                         (int)third_nibble <<
                         (int)fourth_nibble << "\n";
+                    */
                     break;
                     // ERROR
             }
