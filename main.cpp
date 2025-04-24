@@ -81,6 +81,27 @@ void closeSDL(SDL_Window*& window, SDL_Renderer*& renderer) {
     SDL_Quit();
 }
 
+void drawScreen (const std::vector<std::vector<bool>> & pixels, 
+                    int w, int h, SDL_Renderer* renderer) {
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+    SDL_RenderClear(renderer);
+    SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+    for (int i = 0; i < w; i++) {
+        for (int j = 0; j < h; j++) {
+            if (pixels[i][j]) {
+                SDL_FRect rect = {
+                    i * 10, // x coordinate
+                    j * 10, // y coordinate
+                    9, // width
+                    10 // height 
+                };
+                SDL_RenderFillRect(renderer, &rect);
+            }
+        }
+    }
+    SDL_RenderPresent(renderer);
+}
+
 int main(int argc, char* args[]) {
 
     // 4 kB RAM (program should be loaded at 512 or 0x200)
@@ -98,10 +119,11 @@ int main(int argc, char* args[]) {
     // 16 8-bit variable registers (V0 - VF)
     std::vector<TwoByte> registers (16);
     // screen dimensions
-    const int screen_width = 640;
-    const int screen_height = 320;
+    const int screen_width = 64;
+    const int screen_height = 32;
     // pixels' on / off states
-    std::vector< std::vector<bool> > pixels (32, std::vector<bool>(64, false));
+    std::vector< std::vector<bool> > pixels (
+        screen_width, std::vector<bool>(screen_height, false));
     // struct for drawing rects as pixels 
     SDL_FRect rect = {
         0, // x coordinate
@@ -111,6 +133,8 @@ int main(int argc, char* args[]) {
     };
     // size of loaded program
     int programSize;
+    // timer variables
+    unsigned int lastUpdate = 0, currentTime;
 
     loadFont(ram);
     loadProgram(ram, programSize);
@@ -121,7 +145,7 @@ int main(int argc, char* args[]) {
     SDL_Renderer* renderer;
 
     if (!initSDL(window, renderer, 
-            screen_width, screen_height)) {
+            screen_width * 10, screen_height * 10)) {
         SDL_Log("Failed to initialize!\n");
     } else {        
         // Main loop flag
@@ -129,21 +153,17 @@ int main(int argc, char* args[]) {
 
         // Event handler
         SDL_Event e;
-        /*
-        // While application is running
-        while (!quit) {
-            // Handle events on queue
-            while (SDL_PollEvent(&e) != 0) {
-                // User requests quit
-                if (e.type == SDL_EVENT_QUIT) {
-                    quit = true;
-                } // else if user presses a key
-            }
-        }*/
-        int aux = 0;
+        
         while (SDL_PollEvent(&e) != 0 || !quit) {
             if (e.type == SDL_EVENT_QUIT) {
                 quit = true;
+            }
+            
+            // Check if screen should update
+            currentTime = SDL_GetTicks();
+            if (currentTime > lastUpdate + 16.66) { // 60 fps
+                drawScreen(pixels, screen_width, screen_height, renderer);
+                lastUpdate = currentTime;
             }
 
             // decode instruction
@@ -151,19 +171,12 @@ int main(int argc, char* args[]) {
             Nibble second_nibble = ram[pc++] & 0x0F;
             Nibble third_nibble = (ram[pc] & 0xF0) >> 4;
             Nibble fourth_nibble = ram[pc++] & 0x0F;
-            std::cout << "pc: " << pc << "\n";
-            std::cout << std::hex << 
-                        (int)first_nibble <<
-                        (int)second_nibble <<
-                        (int)third_nibble <<
-                        (int)fourth_nibble << "\n";
-
+            
             switch(first_nibble) {
                 case 0:
                     if (second_nibble == 0 && 
                             third_nibble == 0xE && 
                             fourth_nibble == 0x0) { // clear screen
-                        std::cout << "clear\n";
                         std::fill(pixels.begin(), pixels.end(), 
                             std::vector<bool>(64, false));
                         SDL_SetRenderDrawColor(
@@ -181,80 +194,56 @@ int main(int argc, char* args[]) {
                 case 1: // jump (set pc to NNN)
                     pc = (second_nibble << 8) | (third_nibble << 4) 
                         | fourth_nibble;
-                    std::cout << "jump to " << pc << ": ";
-                    std::cout << std::hex << int(ram[pc]) << "\n";
                     break;
                 case 6: // set register VX to NN
-                    std::cout << "set register vx to nn\n";
                     registers[second_nibble] = 
-                        (third_nibble << 4) & fourth_nibble;
+                        (third_nibble << 4) | fourth_nibble;
                     break;
                 case 7: // add value NN to register VX
-                    std::cout << "add value NN to register vx\n";
                     registers[second_nibble] += 
-                        (third_nibble << 4) & fourth_nibble;
+                        (third_nibble << 4) | fourth_nibble;
                     break;
                 case 0xA: // set index register I to NNN
-                    std::cout << "set I to nn\n";
                     i_reg = (second_nibble << 8) 
-                            & (third_nibble << 4) & fourth_nibble;
+                            | (third_nibble << 4) | fourth_nibble;
                     break;
                 case 0xD: // display (DXYN)*/
-                    SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
-                    rect.x = aux*10;
-                    rect.y = aux*10;
-                    aux++;
-                    SDL_RenderFillRect(renderer, &rect);
-                    SDL_RenderPresent(renderer);
-                    /*{
-                        std::cout << "----display\n";
+                    {
                         // get x and y coordinates
-                        int x = registers[second_nibble] & 63; // mod 64
-                        int y = registers[third_nibble] & 31;
-
+                        int x = registers[second_nibble] & (screen_width - 1);
+                        int y = registers[third_nibble] & (screen_height - 1);
+                        
                         // set flag register to 0
                         registers[0xF] = 0;
 
                         // iterate over height N
                         for (int i = 0; i < fourth_nibble; i++) {
                             // if screen bottom is reached
-                            if (y + i >= 32) {
+                            if (y + i >= screen_height) {
                                 break;
                             }
                             // iterate over sprite row
                             Byte spriteRow = ram[i_reg + i];
                             for (int j = 7; j >= 0; j--) {
                                 // if screen edge is reached
-                                if (x + 7 - j >= 64) {
+                                if (x + 7 - j >= screen_width) {
                                     continue;
                                 }
+
                                 bool currentBit = spriteRow & (1 << j);
                                 // coordinates for pixels vector
                                 int xP = x + 7 - j;
                                 int yP = y + i;
-                                
+
                                 if (currentBit) {
                                     if (pixels[xP][yP]) {
                                         registers[0xF] = 1;
-                                        // turn off pixel
-                                        pixels[xP][yP] = false;
-                                        SDL_SetRenderDrawColor(
-                                            renderer, 0, 0, 0, 0);
-                                    } else {
-                                        // turn on pixel
-                                        pixels[xP][yP] = true;
-                                        SDL_SetRenderDrawColor(
-                                            renderer, 0xFF, 0xFF, 0xFF, 0xFF);
                                     }
-                                    // update backbuffer
-                                    rect.x = xP * 10;
-                                    rect.y = yP * 10;
-                                    SDL_RenderFillRect(renderer, &rect);
+                                    pixels[xP][yP] = !pixels[xP][yP];
                                 }
-                                SDL_RenderPresent(renderer);
                             }
                         }
-                    }*/
+                    }
                     break;
                 default: // undetermined
                     /*
