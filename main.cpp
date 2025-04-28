@@ -81,6 +81,15 @@ void closeSDL(SDL_Window*& window, SDL_Renderer*& renderer) {
     SDL_Quit();
 }
 
+void clearScreen (std::vector<std::vector<bool>> & pixels,
+                    SDL_Renderer* renderer) {
+    std::fill(pixels.begin(), pixels.end(), 
+        std::vector<bool>(64, false));
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+    SDL_RenderClear(renderer);
+    SDL_RenderPresent(renderer);
+}
+
 void drawScreen (const std::vector<std::vector<bool>> & pixels, 
                     int w, int h, SDL_Renderer* renderer) {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
@@ -174,24 +183,25 @@ int main(int argc, char* args[]) {
             
             switch(first_nibble) {
                 case 0:
-                    if (second_nibble == 0 && 
-                            third_nibble == 0xE && 
-                            fourth_nibble == 0x0) { // clear screen
-                        std::fill(pixels.begin(), pixels.end(), 
-                            std::vector<bool>(64, false));
-                        SDL_SetRenderDrawColor(
-                            renderer, 0, 0, 0, 0);
-                        SDL_RenderClear(renderer);
-                        SDL_RenderPresent(renderer);
-                    } else if (second_nibble == 0 && 
-                        third_nibble == 0xE && 
-                        fourth_nibble == 0xE) { // return
-                        std::cout << "return???\n";
-                    } else { // call machine code routine at NNN
-                        std::cout << "call machine language routine???\n";   
+                    if (second_nibble == 0 && third_nibble == 0xE 
+                            && fourth_nibble == 0x0) { 
+                        // clear the screen
+                        clearScreen(pixels, renderer);
+                    } else if (second_nibble == 0 && third_nibble == 0xE 
+                            && fourth_nibble == 0xE) { 
+                        // return
+                        pc = stack.back();
+                        stack.pop_back();
+                    } else { 
+                        // call machine code routine at NNN
                     }
                     break;
                 case 1: // jump (set pc to NNN)
+                    pc = (second_nibble << 8) | (third_nibble << 4) 
+                        | fourth_nibble;
+                    break;
+                case 2: // calls subroutine at NNN
+                    stack.push_back(pc);
                     pc = (second_nibble << 8) | (third_nibble << 4) 
                         | fourth_nibble;
                     break;
