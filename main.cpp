@@ -205,6 +205,24 @@ int main(int argc, char* args[]) {
                     pc = (second_nibble << 8) | (third_nibble << 4) 
                         | fourth_nibble;
                     break;
+                case 3: // skip if VX equals NN
+                    if (registers[second_nibble] == 
+                            (third_nibble) << 4 | fourth_nibble) {
+                        pc += 2;
+                    }
+                    break;
+                case 4: // skip if VX does not equal NN
+                    if (registers[second_nibble] != 
+                            (third_nibble) << 4 | fourth_nibble) {
+                        pc += 2;
+                    }
+                    break;
+                case 5: // skip if VX == VY
+                    if (registers[second_nibble] == 
+                            registers[third_nibble]) {
+                        pc += 2;
+                    }
+                    break;
                 case 6: // set register VX to NN
                     registers[second_nibble] = 
                         (third_nibble << 4) | fourth_nibble;
@@ -212,6 +230,12 @@ int main(int argc, char* args[]) {
                 case 7: // add value NN to register VX
                     registers[second_nibble] += 
                         (third_nibble << 4) | fourth_nibble;
+                    break;
+                case 9: // skip if VX != VY
+                    if (registers[second_nibble] != 
+                            registers[third_nibble]) {
+                        pc += 2;
+                    }
                     break;
                 case 0xA: // set index register I to NNN
                     i_reg = (second_nibble << 8) 
