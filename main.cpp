@@ -290,7 +290,7 @@ int main(int argc, char* args[]) {
                             // Optional or configurable
                             // registers[second_nibble] = registers[third_nibble];
                             registers[0xF] = 
-                                registers[second_nibble] & (1 << 15);
+                                (registers[second_nibble] & (1 << 15)) >> 15;
                             registers[second_nibble] = 
                                 registers[second_nibble] << 1;
                             break;
