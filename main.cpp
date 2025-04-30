@@ -181,178 +181,187 @@ int main(int argc, char* args[]) {
             Nibble third_nibble = (ram[pc] & 0xF0) >> 4;
             Nibble fourth_nibble = ram[pc++] & 0x0F;
             
-            switch(first_nibble) {
-                case 0:
-                    if (second_nibble == 0 && third_nibble == 0xE 
-                            && fourth_nibble == 0x0) { 
-                        // clear the screen
-                        clearScreen(pixels, renderer);
-                    } else if (second_nibble == 0 && third_nibble == 0xE 
-                            && fourth_nibble == 0xE) { 
-                        // return
-                        pc = stack.back();
-                        stack.pop_back();
-                    } else { 
-                        // call machine code routine at NNN
-                    }
-                    break;
-                case 1: // jump (set pc to NNN)
-                    pc = (second_nibble << 8) | (third_nibble << 4) 
-                        | fourth_nibble;
-                    break;
-                case 2: // calls subroutine at NNN
-                    stack.push_back(pc);
-                    pc = (second_nibble << 8) | (third_nibble << 4) 
-                        | fourth_nibble;
-                    break;
-                case 3: // skip if VX equals NN
-                    if (registers[second_nibble] == 
-                            (third_nibble) << 4 | fourth_nibble) {
-                        pc += 2;
-                    }
-                    break;
-                case 4: // skip if VX does not equal NN
-                    if (registers[second_nibble] != 
-                            (third_nibble) << 4 | fourth_nibble) {
-                        pc += 2;
-                    }
-                    break;
-                case 5: // skip if VX == VY
-                    if (registers[second_nibble] == 
-                            registers[third_nibble]) {
-                        pc += 2;
-                    }
-                    break;
-                case 6: // set register VX to NN
-                    registers[second_nibble] = 
-                        (third_nibble << 4) | fourth_nibble;
-                    break;
-                case 7: // add value NN to register VX
-                    registers[second_nibble] += 
-                        (third_nibble << 4) | fourth_nibble;
-                    break;
-                case 8: // logical and arithmetic instructions
-                    switch (fourth_nibble) {
-                        case 0: // Set VX to value of VY
-                            registers[second_nibble] = 
-                                registers[third_nibble];
-                            break;
-                        case 1: // Binary OR
-                            registers[second_nibble] |= 
-                                registers[third_nibble];
-                            break;
-                        case 2: // Binary AND
-                            registers[second_nibble] &= 
-                                registers[third_nibble];
-                            break;
-                        case 3: // Logical XOR
-                            registers[second_nibble] ^= 
-                                registers[third_nibble];
-                            break;
-                        case 4: // Add
-                            // check for overflow
-                            if (registers[third_nibble] > 0 
-                                    && registers[second_nibble] > 65535 - registers[third_nibble]) {
-                                registers[0xF] = 1; 
-                            } else {
-                                registers[0xF] = 0;
-                            }
-                            registers[second_nibble] += 
-                                registers[third_nibble];
-                            break;
-                        case 5: // Subtract VX - VY
-                            if (registers[second_nibble] > registers[third_nibble]) {
-                                registers[0xF] = 1;
-                            } else {
-                                registers[0xF] = 0;
-                            }
-                            registers[second_nibble] = 
-                                registers[second_nibble] - registers[third_nibble];
-                            break;
-                        case 6: // Shift right
-                            // Optional or configurable
-                            // registers[second_nibble] = registers[third_nibble];
-                            registers[0xF] = 
-                                registers[second_nibble] & 1;
-                            registers[second_nibble] = 
-                                registers[second_nibble] >> 1;
-                            break;
-                        case 7: // Subtract VY - VX
-                            if (registers[third_nibble] > registers[second_nibble]) {
-                                registers[0xF] = 1;
-                            } else {
-                                registers[0xF] = 0;
-                            }
-                            registers[second_nibble] = 
-                                registers[third_nibble] - registers[second_nibble];
-                            break;
-                        case 0xE: // Shift left
-                            // Optional or configurable
-                            // registers[second_nibble] = registers[third_nibble];
-                            registers[0xF] = 
-                                (registers[second_nibble] & (1 << 15)) >> 15;
-                            registers[second_nibble] = 
-                                registers[second_nibble] << 1;
-                            break;
-                    }
-                case 9: // skip if VX != VY
-                    if (registers[second_nibble] != 
-                            registers[third_nibble]) {
-                        pc += 2;
-                    }
-                    break;
-                case 0xA: // set index register I to NNN
-                    i_reg = (second_nibble << 8) 
-                            | (third_nibble << 4) | fourth_nibble;
-                    break;
-                case 0xD: // display (DXYN)*/
-                    {
-                        // get x and y coordinates
-                        int x = registers[second_nibble] & (screen_width - 1);
-                        int y = registers[third_nibble] & (screen_height - 1);
-                        
-                        // set flag register to 0
-                        registers[0xF] = 0;
+            switch(first_nibble) 
+            {
+            case 0:
+                if (second_nibble == 0 && third_nibble == 0xE 
+                        && fourth_nibble == 0x0) { 
+                    // clear the screen
+                    clearScreen(pixels, renderer);
+                } else if (second_nibble == 0 && third_nibble == 0xE 
+                        && fourth_nibble == 0xE) { 
+                    // return
+                    pc = stack.back();
+                    stack.pop_back();
+                } else { 
+                    // call machine code routine at NNN
+                }
+                break;
+            case 1: // jump (set pc to NNN)
+                pc = (second_nibble << 8) | (third_nibble << 4) 
+                    | fourth_nibble;
+                break;
+            case 2: // calls subroutine at NNN
+                stack.push_back(pc);
+                pc = (second_nibble << 8) | (third_nibble << 4) 
+                    | fourth_nibble;
+                break;
+            case 3: // skip if VX equals NN
+                if (registers[second_nibble] == 
+                        (third_nibble) << 4 | fourth_nibble) {
+                    pc += 2;
+                }
+                break;
+            case 4: // skip if VX does not equal NN
+                if (registers[second_nibble] != 
+                        (third_nibble) << 4 | fourth_nibble) {
+                    pc += 2;
+                }
+                break;
+            case 5: // skip if VX == VY
+                if (registers[second_nibble] == 
+                        registers[third_nibble]) {
+                    pc += 2;
+                }
+                break;
+            case 6: // set register VX to NN
+                registers[second_nibble] = 
+                    (third_nibble << 4) | fourth_nibble;
+                break;
+            case 7: // add value NN to register VX
+                registers[second_nibble] += 
+                    (third_nibble << 4) | fourth_nibble;
+                break;
+            case 8: // logical and arithmetic instructions
+                switch (fourth_nibble) {
+                    case 0: // Set VX to value of VY
+                        registers[second_nibble] = 
+                            registers[third_nibble];
+                        break;
+                    case 1: // Binary OR
+                        registers[second_nibble] |= 
+                            registers[third_nibble];
+                        break;
+                    case 2: // Binary AND
+                        registers[second_nibble] &= 
+                            registers[third_nibble];
+                        break;
+                    case 3: // Logical XOR
+                        registers[second_nibble] ^= 
+                            registers[third_nibble];
+                        break;
+                    case 4: // Add
+                        // check for overflow
+                        if (registers[third_nibble] > 0 
+                                && registers[second_nibble] > 65535 - registers[third_nibble]) {
+                            registers[0xF] = 1; 
+                        } else {
+                            registers[0xF] = 0;
+                        }
+                        registers[second_nibble] += 
+                            registers[third_nibble];
+                        break;
+                    case 5: // Subtract VX - VY
+                        if (registers[second_nibble] > registers[third_nibble]) {
+                            registers[0xF] = 1;
+                        } else {
+                            registers[0xF] = 0;
+                        }
+                        registers[second_nibble] = 
+                            registers[second_nibble] - registers[third_nibble];
+                        break;
+                    case 6: // Shift right
+                        // Optional or configurable
+                        // registers[second_nibble] = registers[third_nibble];
+                        registers[0xF] = 
+                            registers[second_nibble] & 1;
+                        registers[second_nibble] = 
+                            registers[second_nibble] >> 1;
+                        break;
+                    case 7: // Subtract VY - VX
+                        if (registers[third_nibble] > registers[second_nibble]) {
+                            registers[0xF] = 1;
+                        } else {
+                            registers[0xF] = 0;
+                        }
+                        registers[second_nibble] = 
+                            registers[third_nibble] - registers[second_nibble];
+                        break;
+                    case 0xE: // Shift left
+                        // Optional or configurable
+                        // registers[second_nibble] = registers[third_nibble];
+                        registers[0xF] = 
+                            (registers[second_nibble] & (1 << 15)) >> 15;
+                        registers[second_nibble] = 
+                            registers[second_nibble] << 1;
+                        break;
+                }
+            case 9: // skip if VX != VY
+                if (registers[second_nibble] != 
+                        registers[third_nibble]) {
+                    pc += 2;
+                }
+                break;
+            case 0xA: // set index register I to NNN
+                i_reg = (second_nibble << 8) 
+                        | (third_nibble << 4) | fourth_nibble;
+                break;
+            case 0xB: // Jump with offset
+                // optional / configurable 
+                // XNN plus value in register VX
+                // pc = registers[second_nibble] + (second_nibble << 8) | (third_nibble << 4) | fourth_nibble;
+                pc = registers[0] + 
+                    ((second_nibble << 8) | (third_nibble << 4) 
+                    | fourth_nibble);
+                break;
+            case 0xD: // display (DXYN)*/
+                {
+                    // get x and y coordinates
+                    int x = registers[second_nibble] & (screen_width - 1);
+                    int y = registers[third_nibble] & (screen_height - 1);
+                    
+                    // set flag register to 0
+                    registers[0xF] = 0;
 
-                        // iterate over height N
-                        for (int i = 0; i < fourth_nibble; i++) {
-                            // if screen bottom is reached
-                            if (y + i >= screen_height) {
-                                break;
+                    // iterate over height N
+                    for (int i = 0; i < fourth_nibble; i++) {
+                        // if screen bottom is reached
+                        if (y + i >= screen_height) {
+                            break;
+                        }
+                        // iterate over sprite row
+                        Byte spriteRow = ram[i_reg + i];
+                        for (int j = 7; j >= 0; j--) {
+                            // if screen edge is reached
+                            if (x + 7 - j >= screen_width) {
+                                continue;
                             }
-                            // iterate over sprite row
-                            Byte spriteRow = ram[i_reg + i];
-                            for (int j = 7; j >= 0; j--) {
-                                // if screen edge is reached
-                                if (x + 7 - j >= screen_width) {
-                                    continue;
+
+                            bool currentBit = spriteRow & (1 << j);
+                            // coordinates for pixels vector
+                            int xP = x + 7 - j;
+                            int yP = y + i;
+
+                            if (currentBit) {
+                                if (pixels[xP][yP]) {
+                                    registers[0xF] = 1;
                                 }
-
-                                bool currentBit = spriteRow & (1 << j);
-                                // coordinates for pixels vector
-                                int xP = x + 7 - j;
-                                int yP = y + i;
-
-                                if (currentBit) {
-                                    if (pixels[xP][yP]) {
-                                        registers[0xF] = 1;
-                                    }
-                                    pixels[xP][yP] = !pixels[xP][yP];
-                                }
+                                pixels[xP][yP] = !pixels[xP][yP];
                             }
                         }
                     }
-                    break;
-                default: // undetermined
-                    /*
-                    std::cout << std::hex << 
-                        (int)first_nibble <<
-                        (int)second_nibble <<
-                        (int)third_nibble <<
-                        (int)fourth_nibble << "\n";
-                    */
-                    break;
-                    // ERROR
+                }
+                break;
+            default: // undetermined
+                /*
+                std::cout << std::hex << 
+                    (int)first_nibble <<
+                    (int)second_nibble <<
+                    (int)third_nibble <<
+                    (int)fourth_nibble << "\n";
+                */
+                break;
+                // ERROR
             }
         }
     }
