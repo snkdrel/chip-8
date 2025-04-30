@@ -90,7 +90,7 @@ void clearScreen (std::vector<std::vector<bool>> & pixels,
     SDL_RenderPresent(renderer);
 }
 
-void drawScreen (const std::vector<std::vector<bool>> & pixels, 
+void updateScreen (const std::vector<std::vector<bool>> & pixels, 
                     int w, int h, SDL_Renderer* renderer) {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
     SDL_RenderClear(renderer);
@@ -171,7 +171,7 @@ int main(int argc, char* args[]) {
             // Check if screen should update
             currentTime = SDL_GetTicks();
             if (currentTime > lastUpdate + 16.66) { // 60 fps
-                drawScreen(pixels, screen_width, screen_height, renderer);
+                updateScreen(pixels, screen_width, screen_height, renderer);
                 lastUpdate = currentTime;
             }
 
@@ -231,6 +231,70 @@ int main(int argc, char* args[]) {
                     registers[second_nibble] += 
                         (third_nibble << 4) | fourth_nibble;
                     break;
+                case 8: // logical and arithmetic instructions
+                    switch (fourth_nibble) {
+                        case 0: // Set VX to value of VY
+                            registers[second_nibble] = 
+                                registers[third_nibble];
+                            break;
+                        case 1: // Binary OR
+                            registers[second_nibble] |= 
+                                registers[third_nibble];
+                            break;
+                        case 2: // Binary AND
+                            registers[second_nibble] &= 
+                                registers[third_nibble];
+                            break;
+                        case 3: // Logical XOR
+                            registers[second_nibble] ^= 
+                                registers[third_nibble];
+                            break;
+                        case 4: // Add
+                            // check for overflow
+                            if (registers[third_nibble] > 0 
+                                    && registers[second_nibble] > 65535 - registers[third_nibble]) {
+                                registers[0xF] = 1; 
+                            } else {
+                                registers[0xF] = 0;
+                            }
+                            registers[second_nibble] += 
+                                registers[third_nibble];
+                            break;
+                        case 5: // Subtract VX - VY
+                            if (registers[second_nibble] > registers[third_nibble]) {
+                                registers[0xF] = 1;
+                            } else {
+                                registers[0xF] = 0;
+                            }
+                            registers[second_nibble] = 
+                                registers[second_nibble] - registers[third_nibble];
+                            break;
+                        case 6: // Shift right
+                            // Optional or configurable
+                            // registers[second_nibble] = registers[third_nibble];
+                            registers[0xF] = 
+                                registers[second_nibble] & 1;
+                            registers[second_nibble] = 
+                                registers[second_nibble] >> 1;
+                            break;
+                        case 7: // Subtract VY - VX
+                            if (registers[third_nibble] > registers[second_nibble]) {
+                                registers[0xF] = 1;
+                            } else {
+                                registers[0xF] = 0;
+                            }
+                            registers[second_nibble] = 
+                                registers[third_nibble] - registers[second_nibble];
+                            break;
+                        case 0xE: // Shift left
+                            // Optional or configurable
+                            // registers[second_nibble] = registers[third_nibble];
+                            registers[0xF] = 
+                                registers[second_nibble] & (1 << 15);
+                            registers[second_nibble] = 
+                                registers[second_nibble] << 1;
+                            break;
+                    }
                 case 9: // skip if VX != VY
                     if (registers[second_nibble] != 
                             registers[third_nibble]) {
