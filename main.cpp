@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <bitset>
+#include <random>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
@@ -144,6 +145,8 @@ int main(int argc, char* args[]) {
     int programSize;
     // timer variables
     unsigned int lastUpdate = 0, currentTime;
+    // instantiate PRNG engine
+    std::mt19937 mt{}; // 32-bit mersenne twister
 
     loadFont(ram);
     loadProgram(ram, programSize);
@@ -313,6 +316,10 @@ int main(int argc, char* args[]) {
                 pc = registers[0] + 
                     ((second_nibble << 8) | (third_nibble << 4) 
                     | fourth_nibble);
+                break;
+            case 0xC: // CXNN (Random)
+                registers[second_nibble] = 
+                    mt() & (third_nibble << 4 | fourth_nibble);
                 break;
             case 0xD: // display (DXYN)*/
                 {
