@@ -112,6 +112,46 @@ void updateScreen (const std::vector<std::vector<bool>> & pixels,
     SDL_RenderPresent(renderer);
 }
 
+Nibble mapKeyToRegister(SDL_Keycode key) {
+    switch (key) 
+    {
+    case SDLK_1:
+        return 1;
+    case SDLK_2:
+        return 2;
+    case SDLK_3:
+        return 3;
+    case SDLK_4:
+        return 0xC;
+    case SDLK_Q:
+        return 4;
+    case SDLK_W:
+        return 5;
+    case SDLK_E:
+        return 6;
+    case SDLK_R:
+        return 0xD;
+    case SDLK_A:
+        return 7;
+    case SDLK_S:
+        return 8;
+    case SDLK_D:
+        return 9;
+    case SDLK_F:
+        return 0xE;
+    case SDLK_Z:
+        return 0xA;
+    case SDLK_X:
+        return 0;
+    case SDLK_C:
+        return 0xB;
+    case SDLK_V:
+        return 0xF;
+    default:
+        return -1;
+    }
+}
+
 int main(int argc, char* args[]) {
 
     // 4 kB RAM (program should be loaded at 512 or 0x200)
@@ -359,6 +399,22 @@ int main(int argc, char* args[]) {
                     }
                 }
                 break;
+            case 0xE:
+                if (third_nibble == 0x9 && fourth_nibble == 0xE) {
+                    // EX9E skip if key is pressed
+                    if (e.type == SDL_EVENT_KEY_DOWN) {
+                        // check if VX key is pressed
+                        if (mapKeyToRegister(e.key.key) == second_nibble) {
+                            pc += 2;
+                        }
+                    }
+                } else if (third_nibble == 0xA && fourth_nibble == 0x1) {
+                    // EXA1 skip if key is not pressed
+                    if (e.type != SDL_EVENT_KEY_DOWN || 
+                            mapKeyToRegister(e.key.key) != second_nibble) {
+                        pc += 2;
+                    }
+                }
             default: // undetermined
                 /*
                 std::cout << std::hex << 
