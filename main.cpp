@@ -463,6 +463,20 @@ int main(int argc, char* args[]) {
                     ram[i_reg] = registers[second_nibble] / 100;
                     ram[i_reg+1] = (registers[second_nibble] / 10) % 10;
                     ram[i_reg+2] = registers[second_nibble] % 10;
+                } else if (third_nibble == 5 && fourth_nibble == 5) {
+                    // store registers into memory
+                    for (int i = 0; i <= second_nibble; i++) {
+                        ram[i_reg + i] = registers[i];
+                    }
+                    // configurable
+                    //i_reg = i_reg + second_nibble + 1;
+                } else if (third_nibble == 6 && fourth_nibble == 5) {
+                    // load memory into registers
+                    for (int i = 0; i <= second_nibble; i++) {
+                        registers[i] = ram[i_reg + i];
+                    }
+                    // configurable
+                    //i_reg = i_reg + second_nibble + 1;
                 }
                 break;
             default: // undetermined
