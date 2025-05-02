@@ -152,6 +152,8 @@ Nibble mapKeyToValue(SDL_Keycode key) {
     }
 }
 
+
+
 int main(int argc, char* args[]) {
 
     // 4 kB RAM (program should be loaded at 512 or 0x200)
@@ -167,7 +169,7 @@ int main(int argc, char* args[]) {
     // 8-bit sound timer
     Byte sound_timer;
     // 16 8-bit variable registers (V0 - VF)
-    std::vector<TwoByte> registers (16);
+    std::vector<Byte> registers (16);
     // Delay and sound timers
     Byte dTimer = 0;
     Byte sTimer = 0;
@@ -452,6 +454,15 @@ int main(int argc, char* args[]) {
                     } else {
                         pc -= 2;
                     }
+                } else if (third_nibble == 2 && fourth_nibble == 9) {
+                    // font character
+                    int offset = 40 * (registers[second_nibble] & 0xF);
+                    i_reg = 0x50 + offset;
+                } else if (third_nibble == 3 && fourth_nibble == 3) {
+                    // binary-coded decimal conversion
+                    ram[i_reg] = registers[second_nibble] / 100;
+                    ram[i_reg+1] = (registers[second_nibble] / 10) % 10;
+                    ram[i_reg+2] = registers[second_nibble] % 10;
                 }
                 break;
             default: // undetermined
