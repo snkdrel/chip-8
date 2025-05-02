@@ -168,6 +168,9 @@ int main(int argc, char* args[]) {
     Byte sound_timer;
     // 16 8-bit variable registers (V0 - VF)
     std::vector<TwoByte> registers (16);
+    // Delay and sound timers
+    Byte dTimer = 0;
+    Byte sTimer = 0;
     // screen dimensions
     const int screen_width = 64;
     const int screen_height = 32;
@@ -211,10 +214,15 @@ int main(int argc, char* args[]) {
                 quit = true;
             }
             
-            // Check if screen should update
+            // Update screen and timer (60Hz)
             currentTime = SDL_GetTicks();
-            if (currentTime > lastUpdate + 16.66) { // 60 fps
+            if (currentTime > lastUpdate + 16.66) {
+                // update screen
                 updateScreen(pixels, screen_width, screen_height, renderer);
+                // Update timers
+                if (dTimer > 0) dTimer--;
+                if (sTimer > 0) sTimer--;
+                
                 lastUpdate = currentTime;
             }
 
@@ -415,6 +423,18 @@ int main(int argc, char* args[]) {
                         pc += 2;
                     }
                 }
+            case 0xF: // Timer instructions
+                if (third_nibble == 0 && fourth_nibble == 7) {
+                    // Sets VX to delay timer value
+                    registers[second_nibble] = dTimer;
+                } else if (third_nibble == 1 && fourth_nibble == 5) {
+                    // Sets delay timer to VX value
+                    dTimer = registers[second_nibble];
+                } else if (third_nibble == 1 && fourth_nibble == 8) {
+                    // set sound timer to VX value
+                    sTimer = registers[second_nibble];
+                }
+                break;
             default: // undetermined
                 /*
                 std::cout << std::hex << 
