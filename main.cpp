@@ -112,7 +112,7 @@ void updateScreen (const std::vector<std::vector<bool>> & pixels,
     SDL_RenderPresent(renderer);
 }
 
-Nibble mapKeyToRegister(SDL_Keycode key) {
+Nibble mapKeyToValue(SDL_Keycode key) {
     switch (key) 
     {
     case SDLK_1:
@@ -412,14 +412,14 @@ int main(int argc, char* args[]) {
                     // EX9E skip if key is pressed
                     if (e.type == SDL_EVENT_KEY_DOWN) {
                         // check if VX key is pressed
-                        if (mapKeyToRegister(e.key.key) == second_nibble) {
+                        if (mapKeyToValue(e.key.key) == second_nibble) {
                             pc += 2;
                         }
                     }
                 } else if (third_nibble == 0xA && fourth_nibble == 0x1) {
                     // EXA1 skip if key is not pressed
                     if (e.type != SDL_EVENT_KEY_DOWN || 
-                            mapKeyToRegister(e.key.key) != second_nibble) {
+                            mapKeyToValue(e.key.key) != second_nibble) {
                         pc += 2;
                     }
                 }
@@ -439,6 +439,18 @@ int main(int argc, char* args[]) {
                     // Amiga (spacefight 2091!) behavior
                     if (i_reg > 0x0FFF) {
                         registers[0xF] = 1;
+                    }
+                } else if (third_nibble == 0 && fourth_nibble == 0xA) {
+                    // Get key
+                    if (e.type == SDL_EVENT_KEY_DOWN) {
+                        Nibble val = mapKeyToValue(e.key.key);
+                        if (val != -1) {
+                            registers[second_nibble] = val;
+                        } else {
+                            pc -= 2;
+                        }
+                    } else {
+                        pc -= 2;
                     }
                 }
                 break;
