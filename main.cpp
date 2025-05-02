@@ -423,7 +423,7 @@ int main(int argc, char* args[]) {
                         pc += 2;
                     }
                 }
-            case 0xF: // Timer instructions
+            case 0xF:
                 if (third_nibble == 0 && fourth_nibble == 7) {
                     // Sets VX to delay timer value
                     registers[second_nibble] = dTimer;
@@ -433,6 +433,13 @@ int main(int argc, char* args[]) {
                 } else if (third_nibble == 1 && fourth_nibble == 8) {
                     // set sound timer to VX value
                     sTimer = registers[second_nibble];
+                } else if (third_nibble == 1 && fourth_nibble == 0xE) {
+                    // add VX value to I register
+                    i_reg += registers[second_nibble];
+                    // Amiga (spacefight 2091!) behavior
+                    if (i_reg > 0x0FFF) {
+                        registers[0xF] = 1;
+                    }
                 }
                 break;
             default: // undetermined
