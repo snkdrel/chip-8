@@ -1,3 +1,4 @@
 build/
+testPrograms/
 *.ch8
 *.sh

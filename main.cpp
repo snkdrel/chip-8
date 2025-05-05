@@ -30,7 +30,7 @@ void loadFont(std::vector<Byte> &ram) {
 
 // load program into memory at 0x200
 void loadProgram(std::vector<Byte> &ram, int &programSize) {
-    std::ifstream programFile {"test.ch8", std::ios::binary};
+    std::ifstream programFile {"testPrograms/3-corax+.ch8", std::ios::binary};
     if(!programFile) {
         std::cerr << "Program file could not be opened.\n";
         // HANDLE ERROR
@@ -233,7 +233,7 @@ int main(int argc, char* args[]) {
             Nibble second_nibble = ram[pc++] & 0x0F;
             Nibble third_nibble = (ram[pc] & 0xF0) >> 4;
             Nibble fourth_nibble = ram[pc++] & 0x0F;
-            
+
             switch(first_nibble) 
             {
             case 0:
@@ -261,13 +261,13 @@ int main(int argc, char* args[]) {
                 break;
             case 3: // skip if VX equals NN
                 if (registers[second_nibble] == 
-                        (third_nibble) << 4 | fourth_nibble) {
+                        ((third_nibble) << 4 | fourth_nibble)) {
                     pc += 2;
                 }
                 break;
             case 4: // skip if VX does not equal NN
                 if (registers[second_nibble] != 
-                        (third_nibble) << 4 | fourth_nibble) {
+                        ((third_nibble) << 4 | fourth_nibble)) {
                     pc += 2;
                 }
                 break;
