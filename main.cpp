@@ -30,7 +30,7 @@ void loadFont(std::vector<Byte> &ram) {
 
 // load program into memory at 0x200
 void loadProgram(std::vector<Byte> &ram, int &programSize) {
-    std::ifstream programFile {"testPrograms/3-corax+.ch8", std::ios::binary};
+    std::ifstream programFile {"testPrograms/4-flags.ch8", std::ios::binary};
     if(!programFile) {
         std::cerr << "Program file could not be opened.\n";
         // HANDLE ERROR
@@ -294,59 +294,80 @@ int main(int argc, char* args[]) {
                     case 1: // Binary OR
                         registers[second_nibble] |= 
                             registers[third_nibble];
+                        registers[0xF] = 0;
                         break;
                     case 2: // Binary AND
                         registers[second_nibble] &= 
                             registers[third_nibble];
+                        registers[0xF] = 0;
                         break;
                     case 3: // Logical XOR
                         registers[second_nibble] ^= 
                             registers[third_nibble];
+                        registers[0xF] = 0;
                         break;
-                    case 4: // Add
-                        // check for overflow
-                        if (registers[third_nibble] > 0 
-                                && registers[second_nibble] > 65535 - registers[third_nibble]) {
-                            registers[0xF] = 1; 
-                        } else {
-                            registers[0xF] = 0;
+                    case 4: // Add VX + VY
+                        {
+                            Byte isThereOverflow;
+                            // check for overflow
+                            if (registers[third_nibble] > 0 
+                                    && registers[second_nibble] > 255 - registers[third_nibble]) {
+                                isThereOverflow = 1; 
+                            } else {
+                                isThereOverflow = 0;
+                            }
+                            registers[second_nibble] += 
+                                registers[third_nibble];
+                            registers[0xF] = isThereOverflow;
                         }
-                        registers[second_nibble] += 
-                            registers[third_nibble];
                         break;
                     case 5: // Subtract VX - VY
-                        if (registers[second_nibble] > registers[third_nibble]) {
-                            registers[0xF] = 1;
-                        } else {
-                            registers[0xF] = 0;
+                        {
+                            Byte isThereUnderflow;
+                            if (registers[second_nibble] < registers[third_nibble]) {
+                                isThereUnderflow = 1;
+                            } else {
+                                isThereUnderflow = 0;
+                            }
+                            registers[second_nibble] -= 
+                                registers[third_nibble];
+                            registers[0xF] = !isThereUnderflow;
                         }
-                        registers[second_nibble] = 
-                            registers[second_nibble] - registers[third_nibble];
                         break;
                     case 6: // Shift right
                         // Optional or configurable
                         // registers[second_nibble] = registers[third_nibble];
-                        registers[0xF] = 
-                            registers[second_nibble] & 1;
-                        registers[second_nibble] = 
-                            registers[second_nibble] >> 1;
+                        {
+                            Byte shiftedBit =  
+                                registers[second_nibble] & 1;
+                            registers[second_nibble] = 
+                                registers[second_nibble] >> 1;
+                            registers[0xF] = shiftedBit;
+                        }
                         break;
                     case 7: // Subtract VY - VX
-                        if (registers[third_nibble] > registers[second_nibble]) {
-                            registers[0xF] = 1;
-                        } else {
-                            registers[0xF] = 0;
+                        {
+                            Byte isThereUnderflow;
+                            if (registers[second_nibble] > registers[third_nibble]) {
+                                isThereUnderflow = 1;
+                            } else {
+                                isThereUnderflow = 0;
+                            }
+                            registers[second_nibble] = 
+                                registers[third_nibble] - registers[second_nibble];
+                            registers[0xF] = !isThereUnderflow;
                         }
-                        registers[second_nibble] = 
-                            registers[third_nibble] - registers[second_nibble];
                         break;
                     case 0xE: // Shift left
                         // Optional or configurable
                         // registers[second_nibble] = registers[third_nibble];
-                        registers[0xF] = 
-                            (registers[second_nibble] & (1 << 15)) >> 15;
-                        registers[second_nibble] = 
-                            registers[second_nibble] << 1;
+                        {
+                            Byte shiftedBit = 
+                                (registers[second_nibble] & (1 << 7)) >> 7;
+                            registers[second_nibble] = 
+                                registers[second_nibble] << 1;
+                            registers[0xF] = shiftedBit;
+                        }
                         break;
                 }
             case 9: // skip if VX != VY
