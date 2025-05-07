@@ -7,9 +7,9 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
-using Byte = unsigned char;
+using Byte = uint8_t;
 using Nibble = Byte;
-using TwoByte = char16_t;
+using TwoByte = uint16_t;
 
 // store font data in memory (050-09F)
 void loadFont(std::vector<Byte> &ram) {
@@ -30,7 +30,7 @@ void loadFont(std::vector<Byte> &ram) {
 
 // load program into memory at 0x200
 void loadProgram(std::vector<Byte> &ram, int &programSize) {
-    std::ifstream programFile {"testPrograms/4-flags.ch8", std::ios::binary};
+    std::ifstream programFile {"testPrograms/5-quirks.ch8", std::ios::binary};
     if(!programFile) {
         std::cerr << "Program file could not be opened.\n";
         // HANDLE ERROR
@@ -320,6 +320,7 @@ int main(int argc, char* args[]) {
                                 registers[third_nibble];
                             registers[0xF] = isThereOverflow;
                         }
+                        
                         break;
                     case 5: // Subtract VX - VY
                         {
@@ -370,6 +371,7 @@ int main(int argc, char* args[]) {
                         }
                         break;
                 }
+                break;
             case 9: // skip if VX != VY
                 if (registers[second_nibble] != 
                         registers[third_nibble]) {
@@ -460,9 +462,9 @@ int main(int argc, char* args[]) {
                     // add VX value to I register
                     i_reg += registers[second_nibble];
                     // Amiga (spacefight 2091!) behavior
-                    if (i_reg > 0x0FFF) {
-                        registers[0xF] = 1;
-                    }
+                    //if (i_reg > 0x0FFF) {
+                    //    registers[0xF] = 1;
+                    //}
                 } else if (third_nibble == 0 && fourth_nibble == 0xA) {
                     // Get key
                     if (e.type == SDL_EVENT_KEY_DOWN) {
