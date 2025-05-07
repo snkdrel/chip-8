@@ -30,7 +30,7 @@ void loadFont(std::vector<Byte> &ram) {
 
 // load program into memory at 0x200
 void loadProgram(std::vector<Byte> &ram, int &programSize) {
-    std::ifstream programFile {"testPrograms/5-quirks.ch8", std::ios::binary};
+    std::ifstream programFile {"testPrograms/6-keypad.ch8", std::ios::binary};
     if(!programFile) {
         std::cerr << "Program file could not be opened.\n";
         // HANDLE ERROR
@@ -115,40 +115,23 @@ void updateScreen (const std::vector<std::vector<bool>> & pixels,
 Nibble mapKeyToValue(SDL_Keycode key) {
     switch (key) 
     {
-    case SDLK_1:
-        return 1;
-    case SDLK_2:
-        return 2;
-    case SDLK_3:
-        return 3;
-    case SDLK_4:
-        return 0xC;
-    case SDLK_Q:
-        return 4;
-    case SDLK_W:
-        return 5;
-    case SDLK_E:
-        return 6;
-    case SDLK_R:
-        return 0xD;
-    case SDLK_A:
-        return 7;
-    case SDLK_S:
-        return 8;
-    case SDLK_D:
-        return 9;
-    case SDLK_F:
-        return 0xE;
-    case SDLK_Z:
-        return 0xA;
-    case SDLK_X:
-        return 0;
-    case SDLK_C:
-        return 0xB;
-    case SDLK_V:
-        return 0xF;
-    default:
-        return -1;
+        case SDLK_1: return 1;
+        case SDLK_2: return 2;
+        case SDLK_3: return 3;
+        case SDLK_4: return 0xC;
+        case SDLK_Q: return 4;
+        case SDLK_W: return 5;
+        case SDLK_E: return 6;
+        case SDLK_R: return 0xD;
+        case SDLK_A: return 7;
+        case SDLK_S: return 8;
+        case SDLK_D: return 9;
+        case SDLK_F: return 0xE;
+        case SDLK_Z: return 0xA;
+        case SDLK_X: return 0;
+        case SDLK_C: return 0xB;
+        case SDLK_V: return 0xF;
+        default: return -1;
     }
 }
 
@@ -186,6 +169,8 @@ int main(int argc, char* args[]) {
         10, // width
         10, // height
     };
+    // vector for key values
+    std::vector<bool> keys (16, false);
     // size of loaded program
     int programSize;
     // timer variables
@@ -214,6 +199,12 @@ int main(int argc, char* args[]) {
         while (SDL_PollEvent(&e) != 0 || !quit) {
             if (e.type == SDL_EVENT_QUIT) {
                 quit = true;
+            } else if (e.type == SDL_EVENT_KEY_DOWN) {
+                int key_val = mapKeyToValue(e.key.key);
+                if (key_val != -1) keys[key_val] = true;
+            } else if (e.type == SDL_EVENT_KEY_UP) {
+                int key_val = mapKeyToValue(e.key.key);
+                if (key_val != -1) keys[key_val] = false;
             }
             
             // Update screen and timer (60Hz)
@@ -294,17 +285,17 @@ int main(int argc, char* args[]) {
                     case 1: // Binary OR
                         registers[second_nibble] |= 
                             registers[third_nibble];
-                        registers[0xF] = 0;
+                        //registers[0xF] = 0;
                         break;
                     case 2: // Binary AND
                         registers[second_nibble] &= 
                             registers[third_nibble];
-                        registers[0xF] = 0;
+                        //registers[0xF] = 0;
                         break;
                     case 3: // Logical XOR
                         registers[second_nibble] ^= 
                             registers[third_nibble];
-                        registers[0xF] = 0;
+                        //registers[0xF] = 0;
                         break;
                     case 4: // Add VX + VY
                         {
@@ -435,16 +426,12 @@ int main(int argc, char* args[]) {
             case 0xE:
                 if (third_nibble == 0x9 && fourth_nibble == 0xE) {
                     // EX9E skip if key is pressed
-                    if (e.type == SDL_EVENT_KEY_DOWN) {
-                        // check if VX key is pressed
-                        if (mapKeyToValue(e.key.key) == second_nibble) {
-                            pc += 2;
-                        }
+                    if (keys[second_nibble]) {
+                        pc += 2;
                     }
                 } else if (third_nibble == 0xA && fourth_nibble == 0x1) {
                     // EXA1 skip if key is not pressed
-                    if (e.type != SDL_EVENT_KEY_DOWN || 
-                            mapKeyToValue(e.key.key) != second_nibble) {
+                    if (!keys[second_nibble]) {
                         pc += 2;
                     }
                 }
@@ -467,15 +454,13 @@ int main(int argc, char* args[]) {
                     //}
                 } else if (third_nibble == 0 && fourth_nibble == 0xA) {
                     // Get key
-                    if (e.type == SDL_EVENT_KEY_DOWN) {
-                        Nibble val = mapKeyToValue(e.key.key);
-                        if (val != -1) {
-                            registers[second_nibble] = val;
-                        } else {
-                            pc -= 2;
+                    pc -= 2;
+                    for (int i = 0; i < keys.size(); i++) {
+                        if (keys[i]) {
+                            registers[second_nibble] = i;
+                            pc += 2;
+                            break;
                         }
-                    } else {
-                        pc -= 2;
                     }
                 } else if (third_nibble == 2 && fourth_nibble == 9) {
                     // font character
