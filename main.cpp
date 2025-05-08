@@ -196,16 +196,7 @@ int main(int argc, char* args[]) {
         // Event handler
         SDL_Event e;
         
-        while (SDL_PollEvent(&e) != 0 || !quit) {
-            if (e.type == SDL_EVENT_QUIT) {
-                quit = true;
-            } else if (e.type == SDL_EVENT_KEY_DOWN) {
-                int key_val = mapKeyToValue(e.key.key);
-                if (key_val != -1) keys[key_val] = true;
-            } else if (e.type == SDL_EVENT_KEY_UP) {
-                int key_val = mapKeyToValue(e.key.key);
-                if (key_val != -1) keys[key_val] = false;
-            }
+        while (!quit) {
             
             // Update screen and timer (60Hz)
             currentTime = SDL_GetTicks();
@@ -217,6 +208,21 @@ int main(int argc, char* args[]) {
                 if (sTimer > 0) sTimer--;
                 
                 lastUpdate = currentTime;
+                
+                // Check for input
+                while (SDL_PollEvent(&e) != 0) {
+                    if (e.type == SDL_EVENT_QUIT) {
+                        quit = true;
+                    } else if (e.type == SDL_EVENT_KEY_DOWN) {
+                        int key_val = mapKeyToValue(e.key.key);
+                        if (key_val != -1) keys[key_val] = true;
+                        //std::cout << "keys["<<key_val<<"]:"<<keys[key_val]<<"\n";
+                    } else if (e.type == SDL_EVENT_KEY_UP) {
+                        int key_val = mapKeyToValue(e.key.key);
+                        if (key_val != -1) keys[key_val] = false;
+                        //std::cout << "keys["<<key_val<<"]:"<<keys[key_val]<<"\n";
+                    }
+                }
             }
 
             // decode instruction
@@ -224,7 +230,14 @@ int main(int argc, char* args[]) {
             Nibble second_nibble = ram[pc++] & 0x0F;
             Nibble third_nibble = (ram[pc] & 0xF0) >> 4;
             Nibble fourth_nibble = ram[pc++] & 0x0F;
-
+            //std::cout <<"new instruction\n";
+            /*std::cout << "r[4]: "<<(int)registers[0x4]<< ", pc: " << (int)pc << ", inst: ";
+            std::cout << std::hex << 
+                (int)first_nibble <<
+                (int)second_nibble <<
+                (int)third_nibble <<
+                (int)fourth_nibble << "\n";
+            */
             switch(first_nibble) 
             {
             case 0:
@@ -426,22 +439,30 @@ int main(int argc, char* args[]) {
             case 0xE:
                 if (third_nibble == 0x9 && fourth_nibble == 0xE) {
                     // EX9E skip if key is pressed
-                    if (keys[second_nibble]) {
+                    //std::cout << "skip if " << (int)second_nibble << " key down\n";
+                    //std::cout << "keys[X]: "<<keys[second_nibble] <<"\n";
+                    if (keys[registers[second_nibble]]) {
+                        //std::cout << "key was pressed "<<std::flush;
                         pc += 2;
                     }
                 } else if (third_nibble == 0xA && fourth_nibble == 0x1) {
                     // EXA1 skip if key is not pressed
-                    if (!keys[second_nibble]) {
+                    if (!keys[registers[second_nibble]]) {
                         pc += 2;
                     }
                 }
+                break;
             case 0xF:
                 if (third_nibble == 0 && fourth_nibble == 7) {
                     // Sets VX to delay timer value
+                    //std::cout << "dTimer = " << (int)dTimer<< "\n";
                     registers[second_nibble] = dTimer;
+                    //std::cout << "r[x] = " << (int)registers[second_nibble]<< "\n";
                 } else if (third_nibble == 1 && fourth_nibble == 5) {
                     // Sets delay timer to VX value
+                    //std::cout << "r[x] = " << (int)registers[second_nibble]<< "\n";
                     dTimer = registers[second_nibble];
+                    //std::cout << "dTimer = " << (int)dTimer<< "\n";
                 } else if (third_nibble == 1 && fourth_nibble == 8) {
                     // set sound timer to VX value
                     sTimer = registers[second_nibble];
