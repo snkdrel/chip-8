@@ -171,6 +171,8 @@ int main(int argc, char* args[]) {
     };
     // vector for key values
     std::vector<bool> keys (16, false);
+    // last key pressed
+    int lastKey = -1;
     // size of loaded program
     int programSize;
     // timer variables
@@ -216,11 +218,9 @@ int main(int argc, char* args[]) {
                     } else if (e.type == SDL_EVENT_KEY_DOWN) {
                         int key_val = mapKeyToValue(e.key.key);
                         if (key_val != -1) keys[key_val] = true;
-                        //std::cout << "keys["<<key_val<<"]:"<<keys[key_val]<<"\n";
                     } else if (e.type == SDL_EVENT_KEY_UP) {
                         int key_val = mapKeyToValue(e.key.key);
                         if (key_val != -1) keys[key_val] = false;
-                        //std::cout << "keys["<<key_val<<"]:"<<keys[key_val]<<"\n";
                     }
                 }
             }
@@ -230,14 +230,7 @@ int main(int argc, char* args[]) {
             Nibble second_nibble = ram[pc++] & 0x0F;
             Nibble third_nibble = (ram[pc] & 0xF0) >> 4;
             Nibble fourth_nibble = ram[pc++] & 0x0F;
-            //std::cout <<"new instruction\n";
-            /*std::cout << "r[4]: "<<(int)registers[0x4]<< ", pc: " << (int)pc << ", inst: ";
-            std::cout << std::hex << 
-                (int)first_nibble <<
-                (int)second_nibble <<
-                (int)third_nibble <<
-                (int)fourth_nibble << "\n";
-            */
+            
             switch(first_nibble) 
             {
             case 0:
@@ -439,10 +432,7 @@ int main(int argc, char* args[]) {
             case 0xE:
                 if (third_nibble == 0x9 && fourth_nibble == 0xE) {
                     // EX9E skip if key is pressed
-                    //std::cout << "skip if " << (int)second_nibble << " key down\n";
-                    //std::cout << "keys[X]: "<<keys[second_nibble] <<"\n";
                     if (keys[registers[second_nibble]]) {
-                        //std::cout << "key was pressed "<<std::flush;
                         pc += 2;
                     }
                 } else if (third_nibble == 0xA && fourth_nibble == 0x1) {
@@ -455,14 +445,10 @@ int main(int argc, char* args[]) {
             case 0xF:
                 if (third_nibble == 0 && fourth_nibble == 7) {
                     // Sets VX to delay timer value
-                    //std::cout << "dTimer = " << (int)dTimer<< "\n";
                     registers[second_nibble] = dTimer;
-                    //std::cout << "r[x] = " << (int)registers[second_nibble]<< "\n";
                 } else if (third_nibble == 1 && fourth_nibble == 5) {
                     // Sets delay timer to VX value
-                    //std::cout << "r[x] = " << (int)registers[second_nibble]<< "\n";
                     dTimer = registers[second_nibble];
-                    //std::cout << "dTimer = " << (int)dTimer<< "\n";
                 } else if (third_nibble == 1 && fourth_nibble == 8) {
                     // set sound timer to VX value
                     sTimer = registers[second_nibble];
@@ -476,11 +462,18 @@ int main(int argc, char* args[]) {
                 } else if (third_nibble == 0 && fourth_nibble == 0xA) {
                     // Get key
                     pc -= 2;
-                    for (int i = 0; i < keys.size(); i++) {
-                        if (keys[i]) {
-                            registers[second_nibble] = i;
+                    if (lastKey == -1) {
+                        for (int i = 0; i < keys.size(); i++) {
+                            if (keys[i]) {
+                                registers[second_nibble] = i;
+                                lastKey = i;
+                                break;
+                            }
+                        }
+                    } else { // wait until released
+                        if (!keys[lastKey]) {
                             pc += 2;
-                            break;
+                            lastKey = -1;
                         }
                     }
                 } else if (third_nibble == 2 && fourth_nibble == 9) {
