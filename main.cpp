@@ -30,7 +30,7 @@ void loadFont(std::vector<Byte> &ram) {
 
 // load program into memory at 0x200
 void loadProgram(std::vector<Byte> &ram, int &programSize) {
-    std::ifstream programFile {"testPrograms/6-keypad.ch8", std::ios::binary};
+    std::ifstream programFile {"testPrograms/5-quirks.ch8", std::ios::binary};
     if(!programFile) {
         std::cerr << "Program file could not be opened.\n";
         // HANDLE ERROR
@@ -382,10 +382,10 @@ int main(int argc, char* args[]) {
             case 0xB: // Jump with offset
                 // optional / configurable 
                 // XNN plus value in register VX
-                // pc = registers[second_nibble] + (second_nibble << 8) | (third_nibble << 4) | fourth_nibble;
-                pc = registers[0] + 
-                    ((second_nibble << 8) | (third_nibble << 4) 
-                    | fourth_nibble);
+                pc = registers[second_nibble] + (second_nibble << 8) | (third_nibble << 4) | fourth_nibble;
+                //pc = registers[0] + 
+                //    ((second_nibble << 8) | (third_nibble << 4) 
+                //    | fourth_nibble);
                 break;
             case 0xC: // CXNN (Random)
                 registers[second_nibble] = 
