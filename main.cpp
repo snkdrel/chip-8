@@ -30,7 +30,7 @@ void loadFont(std::vector<Byte> &ram) {
 
 // load program into memory at 0x200
 void loadProgram(std::vector<Byte> &ram, int &programSize) {
-    std::ifstream programFile {"testPrograms/5-quirks.ch8", std::ios::binary};
+    std::ifstream programFile {"testPrograms/7-beep.ch8", std::ios::binary};
     if(!programFile) {
         std::cerr << "Program file could not be opened.\n";
         // HANDLE ERROR
@@ -47,12 +47,13 @@ void loadProgram(std::vector<Byte> &ram, int &programSize) {
 }
 
 bool initSDL(SDL_Window*& window, SDL_Renderer*& renderer, 
-                int width, int height) {
+        SDL_AudioStream*& audioStream, Uint8*& wav_data, Uint32& wav_data_len,
+        int width, int height) {
     // Initialization flag
     bool success = true;
 
     // Initialize SDL
-    if (!SDL_Init( SDL_INIT_VIDEO)) {
+    if (!SDL_Init( SDL_INIT_VIDEO | SDL_INIT_AUDIO )) {
         SDL_Log("SDL could not initialize! SDL_Error: %s\n", 
             SDL_GetError());
 		success = false;
@@ -62,14 +63,31 @@ bool initSDL(SDL_Window*& window, SDL_Renderer*& renderer,
         if (window == NULL) {
             SDL_Log("Window could not be created! SDL_Error: %\n", 
                 SDL_GetError());
+            success = false;
         } else {
             renderer = SDL_CreateRenderer(window, NULL);
+        }
+
+        // Initialize audio
+        SDL_AudioSpec spec;
+        if (!SDL_LoadWAV("sounds/beep.wav",
+                &spec, &wav_data, &wav_data_len)) {
+            SDL_Log("Couldn't load .wav file: %s", SDL_GetError());
+            success = false;
+        }
+        audioStream = SDL_OpenAudioDeviceStream(
+            SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, NULL, NULL);
+        if (!audioStream) {
+            SDL_Log("Couldn't create audio stream: %s", SDL_GetError());
+            success = false;
         }
     }
     return success;
 }
 
-void closeSDL(SDL_Window*& window, SDL_Renderer*& renderer) {
+void closeSDL(SDL_Window*& window, SDL_Renderer*& renderer, Uint8*& wav_data) {
+    SDL_free(wav_data);
+    
     // Destroy renderer
     SDL_DestroyRenderer(renderer);
     renderer = NULL;
@@ -162,13 +180,6 @@ int main(int argc, char* args[]) {
     // pixels' on / off states
     std::vector< std::vector<bool> > pixels (
         screen_width, std::vector<bool>(screen_height, false));
-    // struct for drawing rects as pixels 
-    SDL_FRect rect = {
-        0, // x coordinate
-        0, // y coordinate
-        10, // width
-        10, // height
-    };
     // vector for key values
     std::vector<bool> keys (16, false);
     // last key pressed
@@ -187,8 +198,19 @@ int main(int argc, char* args[]) {
     // SDL stuff
     SDL_Window* window = NULL;
     SDL_Renderer* renderer;
+    // struct for drawing rects as pixels 
+    SDL_FRect rect = {
+        0, // x coordinate
+        0, // y coordinate
+        10, // width
+        10, // height
+    };
+    // SDL audio
+    SDL_AudioStream *audioStream = NULL;
+    Uint8 *wav_data = NULL;
+    Uint32 wav_data_len = 0;
 
-    if (!initSDL(window, renderer, 
+    if (!initSDL(window, renderer, audioStream, wav_data, wav_data_len,
             screen_width * 10, screen_height * 10)) {
         SDL_Log("Failed to initialize!\n");
     } else {        
@@ -197,7 +219,7 @@ int main(int argc, char* args[]) {
 
         // Event handler
         SDL_Event e;
-        
+
         while (!quit) {
             
             // Update screen and timer (60Hz)
@@ -207,7 +229,16 @@ int main(int argc, char* args[]) {
                 updateScreen(pixels, screen_width, screen_height, renderer);
                 // Update timers
                 if (dTimer > 0) dTimer--;
-                if (sTimer > 0) sTimer--;
+                if (sTimer > 0) {
+                    SDL_ResumeAudioStreamDevice(audioStream);
+                    // update audio stream
+                    if(SDL_GetAudioStreamQueued(audioStream) < (int)wav_data_len) {
+                        SDL_PutAudioStreamData(audioStream, wav_data, wav_data_len);
+                    }
+                    sTimer--;
+                } else {
+                    SDL_PauseAudioStreamDevice(audioStream);
+                }
                 
                 lastUpdate = currentTime;
                 
@@ -516,7 +547,7 @@ int main(int argc, char* args[]) {
     }
 
     // Free resources and close SDL
-    closeSDL(window, renderer);
+    closeSDL(window, renderer, wav_data);
 
     return 0;
 }
