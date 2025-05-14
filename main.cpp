@@ -30,7 +30,7 @@ void loadFont(std::vector<Byte> &ram) {
 
 // load program into memory at 0x200
 void loadProgram(std::vector<Byte> &ram, int &programSize) {
-    std::ifstream programFile {"testPrograms/7-beep.ch8", std::ios::binary};
+    std::ifstream programFile {"testPrograms/pong.ch8", std::ios::binary};
     if(!programFile) {
         std::cerr << "Program file could not be opened.\n";
         // HANDLE ERROR
@@ -220,11 +220,17 @@ int main(int argc, char* args[]) {
         // Event handler
         SDL_Event e;
 
+        // instructions counter
+        int instr_counter = 0;
+
         while (!quit) {
             
             // Update screen and timer (60Hz)
             currentTime = SDL_GetTicks();
             if (currentTime > lastUpdate + 16.66) {
+                // reset instructions counter
+                instr_counter = 0;
+
                 // update screen
                 updateScreen(pixels, screen_width, screen_height, renderer);
                 // Update timers
@@ -254,6 +260,10 @@ int main(int argc, char* args[]) {
                         if (key_val != -1) keys[key_val] = false;
                     }
                 }
+            }
+            
+            if (instr_counter >= 15) {
+                continue;
             }
 
             // decode instruction
@@ -322,17 +332,17 @@ int main(int argc, char* args[]) {
                     case 1: // Binary OR
                         registers[second_nibble] |= 
                             registers[third_nibble];
-                        //registers[0xF] = 0;
+                        registers[0xF] = 0;
                         break;
                     case 2: // Binary AND
                         registers[second_nibble] &= 
                             registers[third_nibble];
-                        //registers[0xF] = 0;
+                        registers[0xF] = 0;
                         break;
                     case 3: // Logical XOR
                         registers[second_nibble] ^= 
                             registers[third_nibble];
-                        //registers[0xF] = 0;
+                        registers[0xF] = 0;
                         break;
                     case 4: // Add VX + VY
                         {
@@ -365,7 +375,7 @@ int main(int argc, char* args[]) {
                         break;
                     case 6: // Shift right
                         // Optional or configurable
-                        // registers[second_nibble] = registers[third_nibble];
+                        registers[second_nibble] = registers[third_nibble];
                         {
                             Byte shiftedBit =  
                                 registers[second_nibble] & 1;
@@ -389,7 +399,7 @@ int main(int argc, char* args[]) {
                         break;
                     case 0xE: // Shift left
                         // Optional or configurable
-                        // registers[second_nibble] = registers[third_nibble];
+                        registers[second_nibble] = registers[third_nibble];
                         {
                             Byte shiftedBit = 
                                 (registers[second_nibble] & (1 << 7)) >> 7;
@@ -413,10 +423,10 @@ int main(int argc, char* args[]) {
             case 0xB: // Jump with offset
                 // optional / configurable 
                 // XNN plus value in register VX
-                pc = registers[second_nibble] + (second_nibble << 8) | (third_nibble << 4) | fourth_nibble;
-                //pc = registers[0] + 
-                //    ((second_nibble << 8) | (third_nibble << 4) 
-                //    | fourth_nibble);
+                //pc = registers[second_nibble] + (second_nibble << 8) | (third_nibble << 4) | fourth_nibble;
+                pc = registers[0] + 
+                    ((second_nibble << 8) | (third_nibble << 4) 
+                    | fourth_nibble);
                 break;
             case 0xC: // CXNN (Random)
                 registers[second_nibble] = 
@@ -522,14 +532,14 @@ int main(int argc, char* args[]) {
                         ram[i_reg + i] = registers[i];
                     }
                     // configurable
-                    //i_reg = i_reg + second_nibble + 1;
+                    i_reg = i_reg + second_nibble + 1;
                 } else if (third_nibble == 6 && fourth_nibble == 5) {
                     // load memory into registers
                     for (int i = 0; i <= second_nibble; i++) {
                         registers[i] = ram[i_reg + i];
                     }
                     // configurable
-                    //i_reg = i_reg + second_nibble + 1;
+                    i_reg = i_reg + second_nibble + 1;
                 }
                 break;
             default: // undetermined
@@ -543,6 +553,7 @@ int main(int argc, char* args[]) {
                 break;
                 // ERROR
             }
+            instr_counter++;
         }
     }
 
