@@ -4,6 +4,7 @@
 #include <string>
 #include <bitset>
 #include <random>
+#include <chrono>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
@@ -30,7 +31,7 @@ void loadFont(std::vector<Byte> &ram) {
 
 // load program into memory at 0x200
 void loadProgram(std::vector<Byte> &ram, int &programSize) {
-    std::ifstream programFile {"testPrograms/8-scrolling.ch8", std::ios::binary};
+    std::ifstream programFile {"testPrograms/pong.ch8", std::ios::binary};
     if(!programFile) {
         std::cerr << "Program file could not be opened.\n";
         // HANDLE ERROR
@@ -61,7 +62,7 @@ bool initSDL(SDL_Window*& window, SDL_Renderer*& renderer,
         // Create window
         window = SDL_CreateWindow("Chip-8", width, height, 0);
         if (window == NULL) {
-            SDL_Log("Window could not be created! SDL_Error: %\n", 
+            SDL_Log("Window could not be created! SDL_Error: %s\n", 
                 SDL_GetError());
             success = false;
         } else {
@@ -118,8 +119,8 @@ void updateScreen (const std::vector<std::vector<bool>> & pixels,
         for (int j = 0; j < h; j++) {
             if (pixels[i][j]) {
                 SDL_FRect rect = {
-                    i * 10, // x coordinate
-                    j * 10, // y coordinate
+                    (float)i * 10, // x coordinate
+                    (float)j * 10, // y coordinate
                     9, // width
                     10 // height 
                 };
@@ -189,7 +190,7 @@ int main(int argc, char* args[]) {
     // timer variables
     unsigned int lastUpdate = 0, currentTime;
     // instantiate PRNG engine
-    std::mt19937 mt{}; // 32-bit mersenne twister
+    std::mt19937 mt{std::chrono::steady_clock::now().time_since_epoch().count()};
 
     loadFont(ram);
     loadProgram(ram, programSize);
@@ -271,15 +272,6 @@ int main(int argc, char* args[]) {
             Nibble second_nibble = ram[pc++] & 0x0F;
             Nibble third_nibble = (ram[pc] & 0xF0) >> 4;
             Nibble fourth_nibble = ram[pc++] & 0x0F;
-            
-            if (false) {
-                    std::cout << std::hex << 
-                    (int)first_nibble <<
-                    (int)second_nibble <<
-                    (int)third_nibble <<
-                    (int)fourth_nibble << "\n";
-            }
-            //std::cout << std::hex << (int)i_reg << "\n";
             
             switch(first_nibble) 
             {
