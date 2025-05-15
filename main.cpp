@@ -30,7 +30,7 @@ void loadFont(std::vector<Byte> &ram) {
 
 // load program into memory at 0x200
 void loadProgram(std::vector<Byte> &ram, int &programSize) {
-    std::ifstream programFile {"testPrograms/pong.ch8", std::ios::binary};
+    std::ifstream programFile {"testPrograms/8-scrolling.ch8", std::ios::binary};
     if(!programFile) {
         std::cerr << "Program file could not be opened.\n";
         // HANDLE ERROR
@@ -261,7 +261,7 @@ int main(int argc, char* args[]) {
                     }
                 }
             }
-            
+
             if (instr_counter >= 15) {
                 continue;
             }
@@ -271,6 +271,15 @@ int main(int argc, char* args[]) {
             Nibble second_nibble = ram[pc++] & 0x0F;
             Nibble third_nibble = (ram[pc] & 0xF0) >> 4;
             Nibble fourth_nibble = ram[pc++] & 0x0F;
+            
+            if (false) {
+                    std::cout << std::hex << 
+                    (int)first_nibble <<
+                    (int)second_nibble <<
+                    (int)third_nibble <<
+                    (int)fourth_nibble << "\n";
+            }
+            //std::cout << std::hex << (int)i_reg << "\n";
             
             switch(first_nibble) 
             {
@@ -519,7 +528,7 @@ int main(int argc, char* args[]) {
                     }
                 } else if (third_nibble == 2 && fourth_nibble == 9) {
                     // font character
-                    int offset = 40 * (registers[second_nibble] & 0xF);
+                    int offset = 5 * (registers[second_nibble] & 0xF);
                     i_reg = 0x50 + offset;
                 } else if (third_nibble == 3 && fourth_nibble == 3) {
                     // binary-coded decimal conversion
