@@ -2,7 +2,6 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <bitset>
 #include <random>
 #include <chrono>
 #include <SDL3/SDL.h>
@@ -13,13 +12,13 @@ using Nibble = Byte;
 using TwoByte = uint16_t;
 
 // store font data in memory (050-09F)
-void loadFont(std::vector<Byte> &ram) {
+int loadFont(std::vector<Byte> &ram) {
     // open file
-    std::ifstream file {"font.txt"};
+    std::ifstream file {"fonts/font.txt"};
     if(!file) {
         std::cerr << "Font file could not be opened.\n";
         // HANDLE ERROR
-        // return 1;
+        return 1;
     }
 
     std::string strInput{};
@@ -27,15 +26,16 @@ void loadFont(std::vector<Byte> &ram) {
     while (file >> strInput) {
         ram[i++] = std::stoi(strInput, 0, 16);
     }
+    return 0;
 }
 
 // load program into memory at 0x200
-void loadProgram(std::vector<Byte> &ram, int &programSize) {
-    std::ifstream programFile {"testPrograms/pong.ch8", std::ios::binary};
+int loadProgram(std::vector<Byte> &ram, int &programSize, const char* path) {
+    std::ifstream programFile {path, std::ios::binary};
     if(!programFile) {
         std::cerr << "Program file could not be opened.\n";
         // HANDLE ERROR
-        // return 1;
+        return 1;
     }
     // determine file length
     programFile.seekg(0, programFile.end);
@@ -45,6 +45,7 @@ void loadProgram(std::vector<Byte> &ram, int &programSize) {
     for (int i = 0x200; i < programSize + 0x200; i++) {
         programFile.read((char*) &ram[i], sizeof(Byte));
     }
+    return 0;
 }
 
 bool initSDL(SDL_Window*& window, SDL_Renderer*& renderer, 
@@ -154,8 +155,6 @@ Nibble mapKeyToValue(SDL_Keycode key) {
     }
 }
 
-
-
 int main(int argc, char* args[]) {
 
     // 4 kB RAM (program should be loaded at 512 or 0x200)
@@ -192,8 +191,16 @@ int main(int argc, char* args[]) {
     // instantiate PRNG engine
     std::mt19937 mt{std::chrono::steady_clock::now().time_since_epoch().count()};
 
-    loadFont(ram);
-    loadProgram(ram, programSize);
+    if (loadFont(ram) != 0) return EXIT_FAILURE;
+
+    if (argc == 2) {
+        if (loadProgram(ram, programSize, args[1]) != 0) 
+            return EXIT_FAILURE;
+    } else {
+        std::cerr << "Usage: chip-8 [path]\n";
+        return EXIT_FAILURE;
+    }
+
     pc = 0x200;
 
     // SDL stuff
@@ -263,6 +270,7 @@ int main(int argc, char* args[]) {
                 }
             }
 
+            // limit instructions per frame
             if (instr_counter >= 15) {
                 continue;
             }
@@ -552,7 +560,6 @@ int main(int argc, char* args[]) {
                     (int)fourth_nibble << "\n";
                 */
                 break;
-                // ERROR
             }
             instr_counter++;
         }
