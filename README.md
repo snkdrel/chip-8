@@ -1,14 +1,24 @@
 # A Chip-8 interpreter. 
-This is yet another Chip-8 interpreter made in C++, using SDL library. Currently it supports the original strict Chip-8 behavior.
+Chip-8 interpreter made in C++, using SDL library. Currently it supports original strict Chip-8 behavior.
 
 ## How to run.
-Compile with:
+Clone repository along with SDL submodule.
+
+Build with:
 ```
+cmake -S . -B build
+cmake --build build
 ```
 
 Run with:
 ```
-chip-8 [your program file path]
+cd build
+./chip-8 [your program file path]
+```
+or
+```
+cd build/Debug
+./chip-8 [your program file path]
 ```
 ## To do list.
 - Make quirks configurable.
